@@ -1,0 +1,40 @@
+name: Deploy Order Service to Azure
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'OrderService/**'
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: 'order-service-api'
+  DOTNET_VERSION: '9.0.x'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore OrderService/OrderService.csproj
+
+      - name: Build
+        run: dotnet build OrderService/OrderService.csproj --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish OrderService/OrderService.csproj -c Release -o ./publish
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          package: ./publish
