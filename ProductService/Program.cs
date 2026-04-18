@@ -1,12 +1,19 @@
 using Microsoft.EntityFrameworkCore;
 using ProductService.Data;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {        
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -39,15 +46,14 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-       c.SwaggerEndpoint("/swagger/v1/swagger.json", "Product Service API V1");
-       c.RoutePrefix = "swagger"; 
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Product Service API V1");
+    c.RoutePrefix = "swagger"; 
+});
+
 
 app.UseHttpsRedirection();
 app.UseAuthorization();

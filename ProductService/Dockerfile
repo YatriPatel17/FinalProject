@@ -15,7 +15,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# expose port 8080 inside the container
+# expose port 8081 inside the container
 EXPOSE 8081
 
 # start the app
