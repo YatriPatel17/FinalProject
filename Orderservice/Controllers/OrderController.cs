@@ -15,11 +15,12 @@ namespace OrderService.Controllers
         private readonly AppDbContext _context;
         private readonly HttpClient _httpClient;
 
-        public OrderController(AppDbContext context)
+        public OrderController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
             _httpClient = new HttpClient();
-            _httpClient.BaseAddress = new Uri("http://localhost:8081/"); 
+            var productServiceUrl = configuration.GetValue<string>("ProductServiceUrl") ?? "http://localhost:8081/";
+            _httpClient.BaseAddress = new Uri(productServiceUrl);
         }
 
         [HttpGet]
@@ -131,13 +132,15 @@ namespace OrderService.Controllers
 
         // PUT: api/orders/{id}/status
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] string status)
+        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusRequest request)
         {
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _context.Orders
+                .Include(o => o.Items)  // ← ADD THIS to include items
+                .FirstOrDefaultAsync(o => o.Id == id);
             if (order == null)
                 return NotFound(new { message = $"Order with ID {id} not found" });
 
-            order.Status = status;
+            order.Status = request.Status.ToString();
             order.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
@@ -214,5 +217,11 @@ namespace OrderService.Controllers
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int ProductQuantity { get; set; }
+    }
+
+    public class UpdateStatusRequest
+    {
+        [Required]
+        public string Status { get; set; } = string.Empty;
     }
 }
