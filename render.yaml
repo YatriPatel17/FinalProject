@@ -1,0 +1,33 @@
+services:
+
+  - type: web
+    name: product-service-api
+    runtime: image
+    repo: https://github.com/YatriPatel17/FinalProject
+    branch: main
+    rootDir: ProductService
+    dockerContext: ProductService
+    dockerfilePath: ProductService/Dockerfile
+    envVars:
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:8081
+      - key: WEBSITES_PORT
+        value: "8081"
+    healthCheckPath: /health
+
+  - type: web
+    name: order-service-api
+    runtime: image
+    repo: https://github.com/YatriPatel17/FinalProject
+    branch: main
+    rootDir: OrderService
+    dockerContext: OrderService
+    dockerfilePath: OrderService/Dockerfile
+    envVars:
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:8082
+      - key: WEBSITES_PORT
+        value: "8082"
+      - key: ProductServiceUrl
+        value: https://product-service-api.onrender.com/
+    healthCheckPath: /health

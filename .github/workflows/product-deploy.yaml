@@ -1,17 +1,66 @@
-services:
+name: Build and deploy Product Service to Azure Web App
 
-  - type: web
-    name: product-service-api
-    runtime: image
-    repo: https://github.com/YatriPatel17/FinalProject
-    branch: main
-    rootDir: ProductService
-    dockerContext: ProductService
-    dockerfilePath: ProductService/Dockerfile
-    envVars:
-      - key: ASPNETCORE_URLS
-        value: http://0.0.0.0:8081
-      - key: WEBSITES_PORT
-        value: "8081"
-    healthCheckPath: /health
-    plan: free
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ProductService/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+
+      - name: Restore dependencies
+        run: dotnet restore ProductService/ProductService.csproj
+
+      - name: Build with dotnet
+        run: dotnet build ProductService/ProductService.csproj --configuration Release
+
+      - name: dotnet publish
+        run: dotnet publish ProductService/ProductService.csproj -c Release -o ${{env.DOTNET_ROOT}}/product-app
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-app
+          path: ${{env.DOTNET_ROOT}}/product-app
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: product-app
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_PRODUCT }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID_PRODUCT }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_PRODUCT }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'product-service-api'
+          slot-name: 'Production'
+          package: .
